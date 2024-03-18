@@ -1,6 +1,6 @@
 
 /*
-TODO Consegna
+TODO CONSEGNA GIORNO 1
 TODO L'utente clicca su un bottone che genererà una griglia di gioco quadrata.
 TODO Ogni cella ha un numero progressivo, da 1 a 100.
 TODO Ci saranno quindi 10 caselle per ognuna delle 10 righe.
@@ -10,7 +10,15 @@ TODO Aggiungere una select accanto al bottone di generazione, che fornisca una s
 TODO con difficoltà 1 => 100 caselle, con un numero compreso tra 1 e 100, divise in 10 caselle per 10 righe;
 TODO con difficoltà 2 => 81 caselle, con un numero compreso tra 1 e 81, divise in 9 caselle per 9 righe;
 TODO con difficoltà 3 => 49 caselle, con un numero compreso tra 1 e 49, divise in 7 caselle per 7 righe 
+
+TODO CONSEGNA GIORNO 2
+TODO Il computer deve generare 16 numeri casuali nello stesso range della difficoltà prescelta: le bombe. Attenzione: **nella stessa cella può essere posizionata al massimo una bomba, perciò nell’array delle bombe non potranno esserci due numeri uguali.
+TODO In seguito l'utente clicca su una cella: se il numero è presente nella lista dei numeri generati - abbiamo TODO calpestato una bomba - la cella si colora di rosso e la partita termina. Altrimenti la cella cliccata si colora  di azzurro e l'utente può continuare a cliccare sulle altre celle.
+TODO La partita termina quando il giocatore clicca su una bomba o quando raggiunge il numero massimo possibile di TODO numeri consentiti (ovvero quando ha rivelato tutte le celle che non sono bombe).
+TODO Al termine della partita il software deve comunicare il punteggio, cioè il numero di volte che l’utente ha TODO cliccato su una cella che non era una bomba.
 */
+
+
 
 //& INUPUT
 
@@ -22,6 +30,8 @@ const title = document.getElementById('title');
 
 //& VARIABLES
 let difficulty;
+let bombs = 16;
+let score = 0;
 
 
 sendButton.addEventListener('click', function () {
@@ -30,21 +40,24 @@ sendButton.addEventListener('click', function () {
     const wrapper = document.createElement('div'); //creo il wrapper
     wrapper.setAttribute("id", "wrapper");           // setto i suoi attributi
     wrapper.classList = "d-flex flex-wrap";  //e classi
-    const arrayBomb = getRandomUniqueInteger(16, 1, difficulty) //creo l'array delle bombe
+    const arrayBomb = getRandomUniqueInteger(bombs, 1, difficulty) //creo l'array delle bombe
     // console.log(arrayBomb);
     for (let i = 0; i < difficulty; i++) {
         const zone = document.createElement('div'); //creo le zone
         zone.setAttribute('id', `zone-${i + 1}`); //setto l'id delle zone
         zone.className = `box-${difficulty} box zone is-flipped text-white`; //setto le classi delle zone
         //let backCell = createCell(`mistery-${i + 1}`, "?", difficulty); riferimento all'index
-        const backCell = createCell(i + 1, "?", difficulty, null); //creo il retro delle cell
-        backCell.classList.add('back'); //assegno la clsse "back al retro delle cell"
-        const frontCell = createCell(i + 1, cellContent(i + 1, arrayBomb), difficulty, null); //creo le celle passando un semplice funzione di comparazione.
+        const backCell = createCell(i + 1, cellContent(i + 1, arrayBomb), difficulty, "back"); //creo il retro delle cell
+        backCell.classList.add('back'); //assegno la clsse "back" al retro delle cell"
+        const frontCell = createCell(i + 1, cellContent(i + 1, arrayBomb), difficulty, "front"); //creo le celle passando un semplice funzione di comparazione.
         frontCell.classList.add('front')
         zone.appendChild(backCell);
         zone.appendChild(frontCell)
         zone.addEventListener('click', function () {
-            this.classList.remove("is-flipped");
+            this.classList.remove("is-flipped"); //gira la zona e rivela il cotenuto
+            this.childNodes.forEach(element => {
+                element.classList.add("selected")
+            })
         })
         wrapper.appendChild(zone)
     }
@@ -53,15 +66,16 @@ sendButton.addEventListener('click', function () {
 
 
 //^ FUNCTION: CREATECELL
-function createCell(cellIndex, content, difficulty, toggleClass) {
+function createCell(cardIndex, content, difficulty, cardClass) {
     let cell = document.createElement('div');
-    //cell.setAttribute("id", `box-${cellIndex}`);
+    //cell.setAttribute("id", `box-${cardIndex}`);
     cell.className = `box-${difficulty} box d-flex justify-content-center align-items-center`;
-    cell.value = cellIndex;
-    cell.innerHTML = content;
-    cell.addEventListener('click', function () {
-        console.log(`${cell.value}`);
+    cell.value = content.alt ?? true    //qui sto fornendo un value alle celle in modo che sia "bomb", valore che corrisponde all'alt del png delle immagini. se non c'è utilizzo un opratore di coalescenza nullo che mi restituisce true. NB il content è attulamente un elemento dom img
+    cardClass === "back" ? cell.innerHTML = "?" : cell.append(content) //qui invece faccio in modo che il contenuto delle celle vari a seconda che siano il fronte o il retro. Inoltre se il retro è una bomba abbiamo una img, altrimenti un semplice contenitore vuoto
+    cell.addEventListener('click', () => {
+        cardClass === "back" ? updateResults(cell) : ""  //solo le celle non acora girate possono girare e aggiunrare il punteggio
     });
+
     return cell
 }
 
@@ -101,11 +115,33 @@ function getRandomUniqueInteger(numberOfElements, min, max, startingArray) {
 //^ FUNCTION: PASSED CONTENT
 function cellContent(value, arrayToCheck) {
     if (arrayToCheck.includes(value)) {
-        return "bomba"
+        const BombImg = document.createElement('img')
+        BombImg.src = "resources/img/Bomba.png";
+        BombImg.className = "img-fluid "
+        BombImg.alt = "bomb"
+        return BombImg
     } else {
-        return value;
+        const emptyDiv = document.createElement('div')
+        return emptyDiv
     }
+}
 
+
+//^ FUNCTION AGGIORNA PUNTEGGIO
+
+function updateResults(element) {
+    if (element.value === "bomb") {
+        document.querySelectorAll("div[id^='zone']").forEach(element => {
+            element.classList.remove("is-flipped")
+        })
+        alert(`Hai perso con un punteggio di ${score}`)
+    } else if (score === difficulty - bombs) {
+        alert("HAI VINTO!!!!")
+    }
+    else {
+        score++;
+        console.log(`+1 punto! Hai clikkato su una casella sicura. (punteggio attuale ${score})`);
+    }
 }
 
 
