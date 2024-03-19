@@ -44,7 +44,6 @@ sendButton.addEventListener('click', function () {
     wrapper.setAttribute("id", "wrapper");           // setto i suoi attributi
     wrapper.classList = "d-flex flex-wrap";  //e classi
     const arrayBomb = getRandomUniqueInteger(bombs, 1, difficulty) //creo l'array delle bombe
-    console.log(arrayBomb);
     for (let i = 0; i < difficulty; i++) {
         const zone = document.createElement('div'); //creo le zone
         zone.setAttribute('id', `zone-${i + 1}`); //setto l'id delle zone
@@ -57,6 +56,22 @@ sendButton.addEventListener('click', function () {
         population(frontCell, arrayBomb)
         zone.appendChild(backCell);
         zone.appendChild(frontCell)
+        zone.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            if (gameIsInProgress === true && zone.classList.contains("is-flipped")) {
+                zone.childNodes.forEach(element => {
+                    if (element.classList.contains("back") && !element.classList.contains("red-cross")) {
+                        element.classList.add("red-cross");
+                        element.innerHTML = "X";
+                        zone.disabled = true;
+                    } else if (element.classList.contains("back") && element.classList.contains("red-cross")) {
+                        element.classList.remove("red-cross");
+                        element.innerHTML = "?";
+                        zone.disabled = false;
+                    }
+                })
+            }
+        })
         wrapper.appendChild(zone)
     }
     response.append(wrapper)
@@ -71,7 +86,9 @@ function createCell(cardIndex, content, difficulty, cardClass) {
     cell.value = content.alt ?? cardIndex    //qui sto fornendo un value alle celle in modo che sia "bomb", valore che corrisponde all'alt del png delle immagini. se non c'è utilizzo un opratore di coalescenza nullo che mi restituisce true. NB il content è attulamente un elemento dom img
     cardClass === "back" ? cell.innerHTML = "?" : cell.append(content) //qui invece faccio in modo che il contenuto delle celle vari a seconda che siano il fronte o il retro. Inoltre se il retro è una bomba abbiamo una img, altrimenti un semplice contenitore vuoto
     cell.addEventListener('click', () => {
-        cardClass === "back" ? updateResults(cell) : ""  //solo le celle non acora girate possono girare e aggiunrare il punteggio
+        if (cardClass === "back") {
+            updateResults(cell)
+        }  //solo le celle non acora girate possono girare e aggiunrare il punteggio
     });
     return cell
 }
@@ -130,25 +147,28 @@ function cellContent(value, arrayToCheck) {
 //^ FUNCTION UPDATE RESULTS
 
 function updateResults(element) {
-    element.parentNode.classList.remove("is-flipped");
-    element.parentNode.childNodes.forEach(element => {
-        element.classList.add("selected")
-    })
-    if (element.value === "bomb") {
-        document.querySelectorAll("div[id^='zone']").forEach(element => {
-            element.classList.remove("is-flipped")
+    if (!element.parentNode.disabled === true) {
+        element.parentNode.classList.remove("is-flipped");
+        element.parentNode.childNodes.forEach(element => {
+            element.classList.add("selected")
         })
-        document.body.prepend(modalLose(score, "lose"))
-        gameIsInProgress = false;
+        if (element.value === "bomb") {
+            document.querySelectorAll("div[id^='zone']").forEach(element => {
+                element.classList.remove("is-flipped")
+            })
+            document.body.prepend(modalLose(score, "lose"))
+            gameIsInProgress = false;
 
-    }
-    else {
-        score++;
-        console.log(`+1 punto! Hai clikkato su una casella sicura. (punteggio attuale ${score})`);
-    }
-    if (score === (difficulty - bombs)) {
-        document.body.prepend(modalLose(score, "win"))
-    }
+        }
+        else {
+            score++;
+            console.log(`+1 punto! Hai clikkato su una casella sicura. (punteggio attuale ${score})`);
+        }
+        if (score === (difficulty - bombs)) {
+            document.body.prepend(modalLose(score, "win"))
+        }
+    };
+
 }
 
 //^ FUNCTION: POPULATION NUMBERDIV
