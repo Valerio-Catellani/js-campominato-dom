@@ -179,6 +179,12 @@ button {
     -webkit-text-stroke: 1px black;
 }
 
+h3 {
+    color: white;
+    font-weight: bold;
+    -webkit-text-stroke: 1px black;
+}
+
 
 /*******/
 /*MODAL*/

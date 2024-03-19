@@ -41,8 +41,16 @@ sendButton.addEventListener('click', play)
 function play() {
     gameIsInProgress = true;
     score = 0;
+    if (document.getElementById("wrapper")) {
+        document.getElementById("wrapper").remove();
+        document.getElementById("tip").remove()
+    }//remove the already existing wrapper
     title.classList.contains('reduction-done') ? '' : reduction(title, 75, 30); //! My Bonus: animation of title
-    response.append(createZones())
+    let message = document.createElement('h3')
+    message.id = "tip"
+    message.innerHTML = "TIP: If you think you've found a bomb, use the right mouse button to mark it"
+    response.append(createZones(), message)
+
 }
 
 //^FUNCTION: CreateZones
@@ -51,7 +59,7 @@ function play() {
  *
  */
 function createZones() {
-    document.getElementById("wrapper") ? document.getElementById("wrapper").remove() : ""; //remove the already existing wrapper
+
     const Wrapper = document.createElement('div'); //Create wrapper, attributes and class
     Wrapper.setAttribute("id", "wrapper");
     Wrapper.classList = "d-flex flex-wrap";
@@ -68,80 +76,56 @@ function createZones() {
         population(frontCell, arrayBomb) //assign bombs to random cells
         Zone.appendChild(backCell);
         Zone.appendChild(frontCell)
-        Zone.addEventListener('contextmenu', (event) => {
+        Zone.addEventListener('contextmenu', (event) => { //!-----MY BONUS---- put a red cross when right-click on a cell
             event.preventDefault();
-            if (gameIsInProgress === true && Zone.classList.contains("is-flipped")) {
-                Zone.childNodes.forEach(element => {
-                    if (element.classList.contains("back") && !element.classList.contains("red-cross")) {
-                        element.classList.add("red-cross");
-                        element.innerHTML = "X";
-                        Zone.disabled = true;
-                    } else if (element.classList.contains("back") && element.classList.contains("red-cross")) {
-                        element.classList.remove("red-cross");
-                        element.innerHTML = "?";
-                        Zone.disabled = false;
-                    }
-                })
-            }
+            createCross(Zone)
         })
         Wrapper.appendChild(Zone)
-
     }
     return Wrapper
+}
+/**
+ * this function is used to generate a red cross when i right click on a cell. That cell is disabled untill right-click again
+ * @param {*} zone 
+ */
+//^ FUNCTION: CreateCross
+function createCross(zone) {
+    if (gameIsInProgress === true && zone.classList.contains("is-flipped")) { //check that zone is NOT flipped
+        zone.childNodes.forEach(element => {
+            if (element.classList.contains("back") && !element.classList.contains("red-cross")) {
+                element.classList.add("red-cross");
+                element.innerHTML = "X";
+                zone.disabled = true;
+            } else if (element.classList.contains("back") && element.classList.contains("red-cross")) {
+                element.classList.remove("red-cross");
+                element.innerHTML = "?";
+                zone.disabled = false;
+            }
+        })
+    }
 }
 
 
 //^ FUNCTION: CreateCells
+/**
+ * Function to create cells. arguments are
+ * @param {*} cardIndex  //used to assign a value on a particular cell
+ * @param {*} content    //content of the cell
+ * @param {*} difficulty //difficulty of the game
+ * @param {*} cardClass  // an eventual class 
+ * @returns 
+ */
 function createCell(cardIndex, content, difficulty, cardClass) {
     let cell = document.createElement('div');
     cell.className = `box-${difficulty} box d-flex justify-content-center align-items-center`;
-    cell.value = content.alt ?? cardIndex    //qui sto fornendo un value alle celle in modo che sia "bomb", valore che corrisponde all'alt del png delle immagini. se non c'è utilizzo un opratore di coalescenza nullo che mi restituisce true. NB il content è attulamente un elemento dom img
-    cardClass === "back" ? cell.innerHTML = "?" : cell.append(content) //qui invece faccio in modo che il contenuto delle celle vari a seconda che siano il fronte o il retro. Inoltre se il retro è una bomba abbiamo una img, altrimenti un semplice contenitore vuoto
+    cell.value = content.alt ?? cardIndex    //Here I am providing a value to the cells so that it is "bomb", a value that corresponds to the alt of the PNG images. If it is not available, I am using a nullish coalescing operator that returns true. Note that the content is currently a DOM img element.
+    cardClass === "back" ? cell.innerHTML = "?" : cell.append(content) //Here, I am ensuring that the content of the cells varies depending on whether they are the front or the back. Additionally, if the back is a bomb, we have an image, otherwise, a simple empty container.
     cell.addEventListener('click', () => {
         if (cardClass === "back") {
             updateResults(cell)
-        }  //solo le celle non acora girate possono girare e aggiunrare il punteggio
+        }  //Only the cell not pflipped can update scores
     });
     return cell
-}
-
-
-//^ FUNCTION: getRandomUniqueInteger
-/**
- * Return an array with the specified numbers. it is possible passing an already existing array.
- * @param {*} numberOfElements 
- * @param {*} min 
- * @param {*} max 
- * @param {*} startingArray 
- * @returns 
- */
-function getRandomUniqueInteger(numberOfElements, min, max, startingArray) {
-
-    let array = Array.isArray(startingArray) ? startingArray : []; //Controllo se l'array è stato inserito oppure nom in tal caso lo imposto a vuoto
-
-    let duplicateCount = 0;
-    array.forEach(element => {
-        element <= max && element >= min ? duplicateCount++ : ""
-    }); //nel caso in cui abbia passato un array con degli elementi, controllo quanti di questi elementi siano già inclusi tra i valori min e max
-
-    numberOfElements = parseInt(numberOfElements)
-    if (numberOfElements > max - min + 1 || isNaN(numberOfElements)) {
-        console.error(`Number of elements(${numberOfElements}) in the function getRandomUniqueInteger must be equal or lower than difference before max value and min value +1 (${max - min + 1}) or must be a valid Number`);
-        return []; //se ho passato troppi elementi richiesti rispetto al campo (max - min +1) entrerei in un loop quindi blocco subito la funzione
-    } else if (numberOfElements > max - min + 1 - duplicateCount) {
-        console.error(`The array [${startingArray}] already has some elements in your field between max(${max}) and min(${min}). The number of elements must be adjusted to compensate that. (number of elements(${numberOfElements}) must be smaller than ${max - min + 1 - duplicateCount})`);
-        return []; //se ho passato troppi elementi rispetto al campo e a quelli eventualmente già contenuti nel mio array blocco subito la funzione
-    }
-
-    for (let i = 0; i < numberOfElements; i++) {
-        let newNumber;
-        do {
-            newNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-        } while (array.includes(newNumber)) {
-            array.push(newNumber)
-        } //semplice ciclo do while che prima ci genera un numero, poi controlla che esso sia presente o meno nell'array. Se non è presento pusha, altrimenti ricomincia il ciclo con un nuovo numero (riprendendo il do) finchè non trova un numero che soddisfi il while. Quando lo trovo procedo con un nuovo ciclo for. 
-    }
-    return array;
 }
 
 
@@ -175,7 +159,7 @@ function updateResults(element) {
         if (element.value === "bomb") {
             document.querySelectorAll("div[id^='zone']").forEach(element => {
                 element.classList.remove("is-flipped")
-            })
+            }) //flip all cells
             document.body.prepend(modalLose(score, "lose"))
             gameIsInProgress = false;
 
@@ -189,7 +173,7 @@ function updateResults(element) {
         if (score === (difficulty - bombs)) {
             document.querySelectorAll("div[id^='zone']").forEach(element => {
                 element.classList.remove("is-flipped")
-            })
+            })//flip all cells
             document.body.prepend(modalLose(score, "win"))
         }
     };
@@ -261,7 +245,12 @@ function adiacentCells(cell) {
         return true; //return all true value
     });
 }
-
+/**
+ * This function create a modal when the match is over
+ * @param {*} score 
+ * @param {*} condition 
+ * @returns 
+ */
 //^ FUNCTION MODAL END
 function modalLose(score, condition) {
     const BackGroundBlack = document.createElement('div');
