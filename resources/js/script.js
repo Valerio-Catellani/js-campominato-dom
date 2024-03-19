@@ -35,51 +35,63 @@ let score = 0;
 let gameIsInProgress = true;
 
 
-sendButton.addEventListener('click', function () {
+sendButton.addEventListener('click', play)
+
+//^ FUNCTION: play
+function play() {
     gameIsInProgress = true;
     score = 0;
-    document.getElementById("wrapper") ? document.getElementById("wrapper").remove() : ""; //rimuovi il wrapper se esiste già
-    title.classList.contains('reduction-done') ? '' : reduction(title, 75, 30);
-    const wrapper = document.createElement('div'); //creo il wrapper
-    wrapper.setAttribute("id", "wrapper");           // setto i suoi attributi
-    wrapper.classList = "d-flex flex-wrap";  //e classi
-    const arrayBomb = getRandomUniqueInteger(bombs, 1, difficulty) //creo l'array delle bombe
+    title.classList.contains('reduction-done') ? '' : reduction(title, 75, 30); //! My Bonus: animation of title
+    response.append(createZones())
+}
+
+//^FUNCTION: CreateZones
+/**
+ * Function for create a wrapper and Zones, each zones has 2 cells. one for Back and one for Front
+ *
+ */
+function createZones() {
+    document.getElementById("wrapper") ? document.getElementById("wrapper").remove() : ""; //remove the already existing wrapper
+    const Wrapper = document.createElement('div'); //Create wrapper, attributes and class
+    Wrapper.setAttribute("id", "wrapper");
+    Wrapper.classList = "d-flex flex-wrap";
+    const arrayBomb = getRandomUniqueInteger(bombs, 1, difficulty) //Create the bomb array
     for (let i = 0; i < difficulty; i++) {
-        const zone = document.createElement('div'); //creo le zone
-        zone.setAttribute('id', `zone-${i + 1}`); //setto l'id delle zone
-        zone.className = `box-${difficulty} box zone is-flipped`; //setto le classi delle zone
-        const backCell = createCell(i + 1, cellContent(i + 1, arrayBomb), difficulty, "back"); //creo il retro delle cell
-        backCell.classList.add('back'); //assegno la clsse "back" al retro delle cell"
-        const frontCell = createCell(i + 1, cellContent(i + 1, arrayBomb), difficulty, "front"); //creo le celle passando un semplice funzione di comparazione.
+        const Zone = document.createElement('div'); //Create a single zone, set attributes and class
+        Zone.setAttribute('id', `zone-${i + 1}`);
+        Zone.className = `box-${difficulty} box zone is-flipped`;
+        Zone.style = `width: calc(${difficulty}%^0.5)`
+        const backCell = createCell(i + 1, cellContent(i + 1, arrayBomb), difficulty, "back"); //crate cell "back" and relative classes
+        backCell.classList.add('back');
+        const frontCell = createCell(i + 1, cellContent(i + 1, arrayBomb), difficulty, "front"); //crate cell "front" and relative classes
         frontCell.classList.add('front')
-        //^ RICHIAMARE UNA FUNZIONE
-        population(frontCell, arrayBomb)
-        zone.appendChild(backCell);
-        zone.appendChild(frontCell)
-        zone.addEventListener('contextmenu', (event) => {
+        population(frontCell, arrayBomb) //assign bombs to random cells
+        Zone.appendChild(backCell);
+        Zone.appendChild(frontCell)
+        Zone.addEventListener('contextmenu', (event) => {
             event.preventDefault();
-            if (gameIsInProgress === true && zone.classList.contains("is-flipped")) {
-                zone.childNodes.forEach(element => {
+            if (gameIsInProgress === true && Zone.classList.contains("is-flipped")) {
+                Zone.childNodes.forEach(element => {
                     if (element.classList.contains("back") && !element.classList.contains("red-cross")) {
                         element.classList.add("red-cross");
                         element.innerHTML = "X";
-                        zone.disabled = true;
+                        Zone.disabled = true;
                     } else if (element.classList.contains("back") && element.classList.contains("red-cross")) {
                         element.classList.remove("red-cross");
                         element.innerHTML = "?";
-                        zone.disabled = false;
+                        Zone.disabled = false;
                     }
                 })
             }
         })
-        wrapper.appendChild(zone)
+        Wrapper.appendChild(Zone)
+
     }
-    response.append(wrapper)
-})
+    return Wrapper
+}
 
 
-
-//^ FUNCTION: CREATECELL
+//^ FUNCTION: CreateCells
 function createCell(cardIndex, content, difficulty, cardClass) {
     let cell = document.createElement('div');
     cell.className = `box-${difficulty} box d-flex justify-content-center align-items-center`;
@@ -94,10 +106,15 @@ function createCell(cardIndex, content, difficulty, cardClass) {
 }
 
 
-
-
-
-//^ FUNCTION: CREATE RANDOM ARRAY OF UNIQUE NUMBERS 
+//^ FUNCTION: getRandomUniqueInteger
+/**
+ * Return an array with the specified numbers. it is possible passing an already existing array.
+ * @param {*} numberOfElements 
+ * @param {*} min 
+ * @param {*} max 
+ * @param {*} startingArray 
+ * @returns 
+ */
 function getRandomUniqueInteger(numberOfElements, min, max, startingArray) {
 
     let array = Array.isArray(startingArray) ? startingArray : []; //Controllo se l'array è stato inserito oppure nom in tal caso lo imposto a vuoto
@@ -128,7 +145,13 @@ function getRandomUniqueInteger(numberOfElements, min, max, startingArray) {
 }
 
 
-//^ FUNCTION: PASSED CONTENT
+//^ FUNCTION: CellContent
+/**
+ * Check if the cell has the same value of an passed array
+ * @param {*} value 
+ * @param {*} arrayToCheck 
+ * @returns 
+ */
 function cellContent(value, arrayToCheck) {
     if (arrayToCheck.includes(value)) {
         const BombImg = document.createElement('img')
@@ -144,14 +167,11 @@ function cellContent(value, arrayToCheck) {
 }
 
 
-//^ FUNCTION UPDATE RESULTS
-
+//^ FUNCTION UpdateResults
 function updateResults(element) {
-    if (!element.parentNode.disabled === true) {
-        element.parentNode.classList.remove("is-flipped");
-        element.parentNode.childNodes.forEach(element => {
-            element.classList.add("selected")
-        })
+    if (!element.parentNode.disabled === true) { //check if the user has put a cross on the cell ("is disabled")
+
+        flipSuccess(element)
         if (element.value === "bomb") {
             document.querySelectorAll("div[id^='zone']").forEach(element => {
                 element.classList.remove("is-flipped")
@@ -161,51 +181,86 @@ function updateResults(element) {
 
         }
         else {
-            score++;
-            console.log(`+1 punto! Hai clikkato su una casella sicura. (punteggio attuale ${score})`);
+            let newScore = document.querySelectorAll(".selected").length;
+            console.log(`+${newScore - score} point! (Actual Points: ${newScore})`);
+            score = newScore;
+
         }
         if (score === (difficulty - bombs)) {
+            document.querySelectorAll("div[id^='zone']").forEach(element => {
+                element.classList.remove("is-flipped")
+            })
             document.body.prepend(modalLose(score, "win"))
         }
     };
 
 }
 
-//^ FUNCTION: POPULATION NUMBERDIV
-function population(cell, array) {
-    let cardRiskValue = 0;  //definisce il rischio di una cella, ovvero quante bombe ci sono in quelle adiacenti
-    if (cell.value !== "bomb") { //vado ad incrimentare il rischio ogni volta che ritrovo una cella con una bomba vicina a quella che sto valutando e che non ha il valore di "bomb"
-        if (cell.value % Math.sqrt(difficulty) === 0) {
-            array.includes(cell.value - 1) ? cardRiskValue++ : "";
-            array.includes(cell.value + Math.sqrt(difficulty)) ? cardRiskValue++ : "";
-            array.includes(cell.value + (Math.sqrt(difficulty) - 1)) ? cardRiskValue++ : "";
-            array.includes(cell.value - Math.sqrt(difficulty)) ? cardRiskValue++ : "";
-            array.includes((cell.value - (Math.sqrt(difficulty))) - 1) ? cardRiskValue++ : "";
-        } else if ((cell.value - 1) % Math.sqrt(difficulty) === 0) {
-            array.includes(cell.value + 1) ? cardRiskValue++ : "";
-            array.includes(cell.value + Math.sqrt(difficulty)) ? cardRiskValue++ : "";
-            array.includes(cell.value + (Math.sqrt(difficulty) + 1)) ? cardRiskValue++ : "";
-            array.includes(cell.value - Math.sqrt(difficulty)) ? cardRiskValue++ : "";
-            array.includes((cell.value - (Math.sqrt(difficulty))) + 1) ? cardRiskValue++ : "";
-        } else {
-            array.includes(cell.value + 1) ? cardRiskValue++ : "";
-            array.includes(cell.value - 1) ? cardRiskValue++ : "";
-            array.includes(cell.value + Math.sqrt(difficulty)) ? cardRiskValue++ : "";
-            array.includes(cell.value + (Math.sqrt(difficulty) + 1)) ? cardRiskValue++ : "";
-            array.includes(cell.value + (Math.sqrt(difficulty) - 1)) ? cardRiskValue++ : "";
-            array.includes(cell.value - Math.sqrt(difficulty)) ? cardRiskValue++ : "";
-            array.includes((cell.value - (Math.sqrt(difficulty))) - 1) ? cardRiskValue++ : "";
-            array.includes((cell.value - (Math.sqrt(difficulty))) + 1) ? cardRiskValue++ : "";
-        } //senza entrare tropo nel dettaglio ho semplicemente fatto calcoli matematici basandomi sul fatto che sommando la radice quadrata dellla difficoltà avrei potuto passare da un elemento su una riga a quella successiva. in questo modo ho facilmente potuto controllare se le caselle adiacienti avessero una bomba o meno. i primi de if sono per gestire il caso in cui l'elemento si trovasse all'inizio o alla fine della riga.
-        cell.childNodes.forEach(element => {
-            element.innerHTML = cardRiskValue === 0 ? "" : cardRiskValue;
-            element.classList.add(`warning-${cardRiskValue}`)
-        })
+//^FUNCTION: flip success 
+function flipSuccess(cell) {
+    cell.parentElement.classList.remove("is-flipped");
+    if ((cell.parentNode.lastElementChild.lastElementChild.classList.contains("warning-0")) && (!cell.parentNode.lastElementChild.classList.contains("selected"))) {
+        cell.parentNode.lastElementChild.classList.add("selected");
+        let adiacent = adiacentCells(cell);
+        adiacent.forEach(element => {
+            flipSuccess(document.getElementById(`zone-${element}`).firstElementChild);
 
+        })
+    } else {
+        cell.parentNode.lastElementChild.classList.add("selected");
     }
 }
 
 
+//^ FUNCTION: Population
+/**
+ * Assign the risky level (number) in each cell adiacent at a bomb, based on the number of bombs.
+ * @param {*} cell 
+ * @param {*} array 
+ */
+function population(cell, array) {
+    let cardRiskValue = 0;  //definisce il rischio di una cella, ovvero quante bombe ci sono in quelle adiacenti
+    if (cell.value !== "bomb") { //vado ad incrimentare il rischio ogni volta che ritrovo una cella con una bomba vicina a quella che sto valutando e che non ha il valore di "bomb"
+        adiacentCells(cell).forEach(element => {  //adiacentCell return an array filtered
+            array.includes(element) ? cardRiskValue++ : ""; //if the arraybomb includes element in the adiacentcells array add a riskvalue
+        })
+        cell.childNodes.forEach(element => {
+            element.innerHTML = cardRiskValue === 0 ? "" : cardRiskValue;
+            element.classList.add(`warning-${cardRiskValue}`)
+        })
+    }
+}
+
+//^ FUNCTION: adiacentCells
+/**
+ * Pass a cell and return an array content all adiacent cells (filtered to respect the assial compare)
+ * @param {*} cell 
+ * @returns 
+ */
+function adiacentCells(cell) {
+    let isRightEdge = cell.value % Math.sqrt(difficulty) === 0; // Check if cells is in the last column
+    let isLeftEdge = cell.value % Math.sqrt(difficulty) === 1; // Check if cells is in the first column
+    let adiacent = [
+        cell.value + 1,
+        cell.value - 1,
+        cell.value + Math.sqrt(difficulty),
+        cell.value + Math.sqrt(difficulty) + 1,
+        cell.value + Math.sqrt(difficulty) - 1,
+        cell.value - Math.sqrt(difficulty),
+        cell.value - Math.sqrt(difficulty) + 1,
+        cell.value - Math.sqrt(difficulty) - 1,
+    ];
+    return adiacent.filter(value => {
+        if (value < 1 || value > difficulty) return false; //exclude the value if it is out 1 or 100 (return false ina filter that return only the true)
+        if (isRightEdge && [cell.value + 1, cell.value - Math.sqrt(difficulty) + 1, cell.value + Math.sqrt(difficulty) + 1].includes(value)) {
+            return false; //if the cell is on the right (checked before filter), AND the value is included in the forbidden value (rappresebted by an array of 3 value), not consider it (retunr false)
+        }
+        if (isLeftEdge && [cell.value - 1, cell.value - Math.sqrt(difficulty) - 1, cell.value + Math.sqrt(difficulty) - 1].includes(value)) {
+            return false;
+        }
+        return true; //return all true value
+    });
+}
 
 //^ FUNCTION MODAL END
 function modalLose(score, condition) {
@@ -224,21 +279,19 @@ function modalLose(score, condition) {
     const EndButton = document.createElement('button')
     EndButton.id = "end"
     EndButton.className = `button-53 bg-${condition === "lose" ? "danger" : "success"}`
-    EndButton.innerHTML = condition === "lose" ? "Retry!" : "Play Agian!"
+    EndButton.innerHTML = condition === "lose" ? "Retry!" : "Play Again!"
     EndButton.addEventListener('click', () => {
         document.getElementById("hype-modal").remove()
     })
     EndBanner.append(EndText, EndButton)
     BackGroundBlack.appendChild(EndBanner);
-
     return BackGroundBlack
-
 }
 
 
 
 //! -----------------BONUS-----------------------
-//TODO creare il javascript del dropdown menu senza bootstrap
+//TODO Dropdown menù without bootstrap javascript
 //& BUTTONS
 //& dropdown
 const difficultyMenu = document.getElementById("drop-down-difficulty");
@@ -280,4 +333,3 @@ async function reduction(element, start, end) {
 //! -------------------- MY BONUS --------------------
 //TODO Inserire all'interno delle celle i numeri in modo che mi forniscano indicazioni sul le celle vuolte attorno.
 //TODO se la cella contine un numero potremo intuire il livello di rischio delle celle adiacenti.
-
